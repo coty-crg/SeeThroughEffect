@@ -11,6 +11,7 @@ struct appdata
 {
 	float2 uv : TEXCOORD0;
 	float4 vertex : POSITION;
+	float4 normal : NORMAL; 
 };
 
 struct v2f
@@ -36,14 +37,14 @@ half _XRayAlbedoIntensity;
 sampler2D _CameraDepthTexture;
 half _XRayIntersectionLength; 
 
-v2f vert(appdata v, float3 normal : NORMAL)
+v2f vert(appdata v)
 {
 	v2f o;
 
 	o.uv = TRANSFORM_TEX(v.uv, _MainTex);
 	o.pos = UnityObjectToClipPos(v.vertex);
-	o.worldNormal = normalize(UnityObjectToWorldNormal(normal));
-	o.viewDir = normalize(UnityWorldSpaceViewDir(o.pos));
+	o.worldNormal = UnityObjectToWorldNormal(v.normal);
+	o.viewDir = normalize(WorldSpaceViewDir(v.vertex));
 	o.grabPos = ComputeGrabScreenPos(o.pos);
 
 	//UNITY_TRANSFER_FOG(o,v.vertex); 
@@ -54,9 +55,7 @@ fixed4 frag(v2f i) : SV_Target
 {
 	fixed4 tex = tex2D(_MainTex, i.uv); 
 
-	float rim = (_XRayThickness - abs(dot(i.worldNormal, i.viewDir))) * _XRayIntensity;
-	rim = min(1, rim);
-	rim = max(0, rim);
+	float rim = saturate((_XRayThickness - saturate(dot(i.worldNormal, i.viewDir))) * _XRayIntensity);
 
 	// final color 
 	fixed4 col = lerp(_XrayColor, lerp(_XrayInverseColor, tex * _Color, _XRayAlbedoIntensity), 1 - rim);
@@ -67,13 +66,9 @@ fixed4 frag(v2f i) : SV_Target
 	half screenDepth = screenDepthTex.r;
 	half ourDepth = i.grabPos.w;
 	half depthDifference = abs(ourDepth - screenDepth);
-	half intersection = depthDifference - _XRayIntersectionLength;
-	intersection = max(0, intersection);
-	intersection = min(1, intersection);
-
+	half intersection = saturate(depthDifference - _XRayIntersectionLength);
 	col.a *= intersection; 
 
 	//UNITY_APPLY_FOG(i.fogCoord, col);
-
 	return col;
 }
