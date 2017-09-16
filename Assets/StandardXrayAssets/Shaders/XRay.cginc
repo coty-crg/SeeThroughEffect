@@ -67,7 +67,7 @@ fixed4 frag(v2f i) : SV_Target
 	half ourDepth = i.grabPos.w;
 	half depthDifference = abs(ourDepth - screenDepth);
 	half intersection = saturate(depthDifference - _XRayIntersectionLength);
-	col.a *= intersection; 
+	//col.a *= intersection; 
 
 	//UNITY_APPLY_FOG(i.fogCoord, col);
 	return col;

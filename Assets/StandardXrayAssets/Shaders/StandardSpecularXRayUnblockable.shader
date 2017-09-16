@@ -1,6 +1,6 @@
-﻿// Unity built-in shader source. Copyright (c) 2016 Unity Technologies. MIT license (see license.txt)
+// Unity built-in shader source. Copyright (c) 2016 Unity Technologies. MIT license (see license.txt)
 
-Shader "WanderingCorgi/Standard (XRay)"
+Shader "WanderingCorgi/Standard (XRay) (Specular setup, Unblockable, or for Deferred)"
 {
 	Properties
 	{
@@ -10,12 +10,11 @@ Shader "WanderingCorgi/Standard (XRay)"
 		_Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
 		_Glossiness("Smoothness", Range(0.0, 1.0)) = 0.5
-		_GlossMapScale("Smoothness Scale", Range(0.0, 1.0)) = 1.0
-		[Enum(Metallic Alpha,0,Albedo Alpha,1)] _SmoothnessTextureChannel ("Smoothness texture channel", Float) = 0
+		_GlossMapScale("Smoothness Factor", Range(0.0, 1.0)) = 1.0
+		[Enum(Specular Alpha,0,Albedo Alpha,1)] _SmoothnessTextureChannel ("Smoothness texture channel", Float) = 0
 
-		[Gamma] _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
-		_MetallicGlossMap("Metallic", 2D) = "white" {}
-
+		_SpecColor("Specular", Color) = (0.2,0.2,0.2)
+		_SpecGlossMap("Specular", 2D) = "white" {}
 		[ToggleOff] _SpecularHighlights("Specular Highlights", Float) = 1.0
 		[ToggleOff] _GlossyReflections("Glossy Reflections", Float) = 1.0
 
@@ -55,27 +54,22 @@ Shader "WanderingCorgi/Standard (XRay)"
 	}
 
 	CGINCLUDE
-		#define UNITY_SETUP_BRDF_INPUT MetallicSetup
+		#define UNITY_SETUP_BRDF_INPUT SpecularSetup
 	ENDCG
 
 	SubShader
 	{
 		Tags { "RenderType"="Opaque" "PerformanceChecks"="False" }
 		LOD 300
-		
-		// XRay pass // 
+	
+		// XRay pass // // XRay pass // 
 		Pass {
-			
+			Name "XRay"
+
 			Blend SrcAlpha OneMinusSrcAlpha
 			Cull Back
 			ZWrite Off
 			ZTest GEqual
-
-			Stencil{ 
-				Ref 0
-				Comp Equal 
-				Pass IncrSat 
-			}
 
 			CGPROGRAM
 				#include "XRay.cginc"
@@ -91,6 +85,12 @@ Shader "WanderingCorgi/Standard (XRay)"
 			Name "FORWARD" 
 			Tags { "LightMode" = "ForwardBase" }
 
+			Stencil{
+				Ref 1
+				Comp Always
+				Pass replace
+			}
+
 			Blend [_SrcBlend] [_DstBlend]
 			ZWrite [_ZWrite]
 
@@ -102,7 +102,7 @@ Shader "WanderingCorgi/Standard (XRay)"
 			#pragma shader_feature _NORMALMAP
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
 			#pragma shader_feature _EMISSION
-			#pragma shader_feature _METALLICGLOSSMAP
+			#pragma shader_feature _SPECGLOSSMAP
 			#pragma shader_feature ___ _DETAIL_MULX2
 			#pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 			#pragma shader_feature _ _SPECULARHIGHLIGHTS_OFF
@@ -125,13 +125,6 @@ Shader "WanderingCorgi/Standard (XRay)"
 		{
 			Name "FORWARD_DELTA"
 			Tags { "LightMode" = "ForwardAdd" }
-
-			Stencil{
-				Ref 1
-				Comp Always
-				Pass replace
-			}
-
 			Blend [_SrcBlend] One
 			Fog { Color (0,0,0,0) } // in additive pass fog should be black
 			ZWrite Off
@@ -142,10 +135,9 @@ Shader "WanderingCorgi/Standard (XRay)"
 
 			// -------------------------------------
 
-
 			#pragma shader_feature _NORMALMAP
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-			#pragma shader_feature _METALLICGLOSSMAP
+			#pragma shader_feature _SPECGLOSSMAP
 			#pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 			#pragma shader_feature _ _SPECULARHIGHLIGHTS_OFF
 			#pragma shader_feature ___ _DETAIL_MULX2
@@ -175,7 +167,7 @@ Shader "WanderingCorgi/Standard (XRay)"
 
 
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-			#pragma shader_feature _METALLICGLOSSMAP
+			#pragma shader_feature _SPECGLOSSMAP
 			#pragma shader_feature _PARALLAXMAP
 			#pragma multi_compile_shadowcaster
 			#pragma multi_compile_instancing
@@ -187,9 +179,6 @@ Shader "WanderingCorgi/Standard (XRay)"
 
 			ENDCG
 		}
-
-
-
 		// ------------------------------------------------------------------
 		//  Deferred pass
 		Pass
@@ -207,7 +196,7 @@ Shader "WanderingCorgi/Standard (XRay)"
 			#pragma shader_feature _NORMALMAP
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
 			#pragma shader_feature _EMISSION
-			#pragma shader_feature _METALLICGLOSSMAP
+			#pragma shader_feature _SPECGLOSSMAP
 			#pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 			#pragma shader_feature _ _SPECULARHIGHLIGHTS_OFF
 			#pragma shader_feature ___ _DETAIL_MULX2
@@ -239,7 +228,7 @@ Shader "WanderingCorgi/Standard (XRay)"
 			#pragma fragment frag_meta
 
 			#pragma shader_feature _EMISSION
-			#pragma shader_feature _METALLICGLOSSMAP
+			#pragma shader_feature _SPECGLOSSMAP
 			#pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 			#pragma shader_feature ___ _DETAIL_MULX2
 			#pragma shader_feature EDITOR_VISUALIZATION
@@ -270,15 +259,15 @@ Shader "WanderingCorgi/Standard (XRay)"
 			#pragma shader_feature _NORMALMAP
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
 			#pragma shader_feature _EMISSION 
-			#pragma shader_feature _METALLICGLOSSMAP 
+			#pragma shader_feature _SPECGLOSSMAP
 			#pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 			#pragma shader_feature _ _SPECULARHIGHLIGHTS_OFF
 			#pragma shader_feature _ _GLOSSYREFLECTIONS_OFF
-			// SM2.0: NOT SUPPORTED shader_feature ___ _DETAIL_MULX2
+			#pragma shader_feature ___ _DETAIL_MULX2
 			// SM2.0: NOT SUPPORTED shader_feature _PARALLAXMAP
 
-			#pragma skip_variants SHADOWS_SOFT DIRLIGHTMAP_COMBINED
-
+			#pragma skip_variants SHADOWS_SOFT DYNAMICLIGHTMAP_ON DIRLIGHTMAP_COMBINED
+			
 			#pragma multi_compile_fwdbase
 			#pragma multi_compile_fog
 
@@ -304,7 +293,7 @@ Shader "WanderingCorgi/Standard (XRay)"
 
 			#pragma shader_feature _NORMALMAP
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-			#pragma shader_feature _METALLICGLOSSMAP
+			#pragma shader_feature _SPECGLOSSMAP
 			#pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 			#pragma shader_feature _ _SPECULARHIGHLIGHTS_OFF
 			#pragma shader_feature ___ _DETAIL_MULX2
@@ -332,7 +321,7 @@ Shader "WanderingCorgi/Standard (XRay)"
 			#pragma target 2.0
 
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-			#pragma shader_feature _METALLICGLOSSMAP
+			#pragma shader_feature _SPECGLOSSMAP
 			#pragma skip_variants SHADOWS_SOFT
 			#pragma multi_compile_shadowcaster
 
@@ -343,7 +332,6 @@ Shader "WanderingCorgi/Standard (XRay)"
 
 			ENDCG
 		}
-
 		// ------------------------------------------------------------------
 		// Extracts information for lightmapping, GI (emission, albedo, ...)
 		// This pass it not used during regular rendering.
@@ -359,7 +347,7 @@ Shader "WanderingCorgi/Standard (XRay)"
 			#pragma fragment frag_meta
 
 			#pragma shader_feature _EMISSION
-			#pragma shader_feature _METALLICGLOSSMAP
+			#pragma shader_feature _SPECGLOSSMAP
 			#pragma shader_feature _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 			#pragma shader_feature ___ _DETAIL_MULX2
 			#pragma shader_feature EDITOR_VISUALIZATION
@@ -368,7 +356,6 @@ Shader "WanderingCorgi/Standard (XRay)"
 			ENDCG
 		}
 	}
-
 
 	FallBack "VertexLit"
 	CustomEditor "StandardShaderGUIXRay"

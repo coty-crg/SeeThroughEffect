@@ -1,6 +1,6 @@
 ﻿// Unity built-in shader source. Copyright (c) 2016 Unity Technologies. MIT license (see license.txt)
 
-Shader "WanderingCorgi/Standard (XRay)"
+Shader "WanderingCorgi/Standard (XRay, Unblockable, or for Deferred)"
 {
 	Properties
 	{
@@ -70,12 +70,6 @@ Shader "WanderingCorgi/Standard (XRay)"
 			Cull Back
 			ZWrite Off
 			ZTest GEqual
-
-			Stencil{ 
-				Ref 0
-				Comp Equal 
-				Pass IncrSat 
-			}
 
 			CGPROGRAM
 				#include "XRay.cginc"
